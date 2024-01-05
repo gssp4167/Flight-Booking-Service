@@ -1,6 +1,9 @@
 const {StatusCodes}=require('http-status-codes');
 const {Booking}=require('../models');
+const {Op}=require('sequelize');
 const CrudRepository=require('./crud-repository');
+const {Enums}=require('../utils/common');
+const {BOOKED,CANCELLED,INITIATED,PENDING}=Enums.BOOKING_STATUS;
 class BookingRepository extends CrudRepository{
     constructor(){
         super(Booking);
@@ -31,6 +34,31 @@ class BookingRepository extends CrudRepository{
             Logger.error('Something went wrong in the CRUD Repo: destroy');
             throw error;
         }
+    }
+
+    async cancelOldBookings(timeStamp){
+        const response=await Booking.update({status:CANCELLED},{
+            where:{
+                [Op.and]:[
+                {
+                    createdAt:{
+                        [Op.lt]:timeStamp
+                    }
+                },
+                {
+                    status:{
+                        [Op.ne]:BOOKED
+                    }
+                },
+                {
+                    status:{
+                        [Op.ne]:CANCELLED
+                    }
+                }
+                ]
+            }
+        });
+        return response;
     }
 }
 
